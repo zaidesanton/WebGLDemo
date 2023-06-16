@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 
-let camera, scene, renderer, player, controls;
+let camera, scene, renderer, player, controls, broomstickScene, broomstickCamera;
 let keys = {};
 let velocity = new THREE.Vector3();
 let moveSpeed = 0.3;
@@ -12,10 +12,10 @@ animate();
 function init() {
     // Set up scene, camera, and renderer
     setupScene();
-    setupPlayer();
+    setupPlayer(); // Call this before setupControls
     setupGround();
     setupLight();
-    setupControls();
+    setupControls(); // Now setupPlayer has been called, and the broomstick exists
     initEventListeners();
 
     // Create random objects and spotlights
@@ -24,22 +24,29 @@ function init() {
 }
 
 function setupScene() {
+    // Setup the primary scene
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.rotation.x = THREE.MathUtils.degToRad(-45);
 
+    // Setup the secondary scene for the broomstick
+    broomstickScene = new THREE.Scene();
+    broomstickCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1);
+    broomstickCamera.position.set(0, -0.3, -0.5);
+
+    // Setup renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.getElementById('game-container').appendChild(renderer.domElement);
+    document.body.appendChild(renderer.domElement);
 }
 
 function setupPlayer() {
-    const playerGeometry = new THREE.SphereGeometry(0.5, 64, 64);
-    const playerMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
+    const playerGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 32);
+    const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
 
     player = new THREE.Mesh(playerGeometry, playerMaterial);
-    player.position.y = 0.5;
-    scene.add(player);
+    player.position.set(0, -0.5, -0.3);
+    player.rotation.x = Math.PI / 2;
 }
 
 function setupGround() {
@@ -61,10 +68,11 @@ function setupControls() {
     controls.getObject().position.y = 30;
     controls.getObject().position.x = 15;
     controls.getObject().position.z = 15;
+    // Add the broomstick to the controls object
+    controls.getObject().add(player);
     scene.add(controls.getObject());
     document.addEventListener("click", () => controls.lock());
 }
-
 function initEventListeners() {
     document.addEventListener("keydown", (event) => (keys[event.key] = true));
     document.addEventListener("keyup", (event) => (keys[event.key] = false));
@@ -73,7 +81,10 @@ function initEventListeners() {
 function animate() {
     requestAnimationFrame(animate);
     updateMovement();
-    renderer.render(scene, camera);
+    renderer.clear(); // Clear the renderer
+    renderer.render(broomstickScene, broomstickCamera); // Render the broomstick scene first
+    renderer.clearDepth(); // Clear the depth buffer so the primary scene is rendered on top
+    renderer.render(scene, camera); // Render the primary scene
 }
 
 let score = 0;
@@ -83,7 +94,6 @@ function incrementScore() {
     document.getElementById('score').textContent = 'Score: ' + score;
 }
 
-// Key movement update
 function updateMovement() {
     if (controls.isLocked) {
         velocity = new THREE.Vector3();
@@ -102,9 +112,6 @@ function updateMovement() {
         controls.getObject().translateX(velocity.x);
         controls.getObject().translateY(velocity.y);
         controls.getObject().translateZ(velocity.z);
-        player.position.copy(controls.getObject().position);
-        player.position.y += 0.5;
-        incrementScore();
     }
 }
 
