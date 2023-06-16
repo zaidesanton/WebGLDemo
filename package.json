@@ -1,0 +1,29 @@
+{
+  "name": "webgldemo",
+  "version": "1.0.0",
+  "description": "A WebGL demo",
+  "main": "index.html",
+  "dependencies": {
+    "three": "^0.153.0"
+  },
+  "devDependencies": {
+    "vite": "^4.3.9"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zaidesanton/WebGLDemo.git"
+  },
+  "keywords": [
+    "webgl",
+    "threejs"
+  ],
+  "author": "Anton Zaides",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zaidesanton/WebGLDemo/issues"
+  },
+  "homepage": "https://github.com/zaidesanton/WebGLDemo#readme"
+}
