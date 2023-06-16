@@ -30,7 +30,7 @@ function setupScene() {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    document.getElementById('game-container').appendChild(renderer.domElement);
 }
 
 function setupPlayer() {
@@ -76,6 +76,12 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+let score = 0;
+
+function incrementScore() {
+    score++;
+    document.getElementById('score').textContent = 'Score: ' + score;
+}
 
 // Key movement update
 function updateMovement() {
@@ -98,6 +104,7 @@ function updateMovement() {
         controls.getObject().translateZ(velocity.z);
         player.position.copy(controls.getObject().position);
         player.position.y += 0.5;
+        incrementScore();
     }
 }
 
