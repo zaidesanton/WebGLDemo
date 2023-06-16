@@ -45,7 +45,7 @@ function setupPlayer() {
     const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
 
     player = new THREE.Mesh(playerGeometry, playerMaterial);
-    player.position.set(0, -0.5, -0.3);
+    player.position.set(0, -0.5, -0.8);  
     player.rotation.x = Math.PI / 2;
 }
 
