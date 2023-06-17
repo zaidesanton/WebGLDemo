@@ -1,10 +1,20 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
-let camera, scene, renderer, player, controls, broomstickScene, broomstickCamera;
+let camera, scene, renderer, player, controls;
 let keys = {};
 let velocity = new THREE.Vector3();
 let moveSpeed = 0.3;
+let lastMouseMoveTime;
+let tiltAmount = 0;
+let score = 0;
+
+const tiltResetSpeed = 0.15; // Adjust to change speed of tilt reset
+const sensitivity = 0.03; // Adjust to change tilt sensitivity
+const maxTilt = 0.5; // Adjust to change maximum tilt
+
+   
 
 init();
 animate();
@@ -27,12 +37,7 @@ function setupScene() {
     // Setup the primary scene
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.rotation.x = THREE.MathUtils.degToRad(-45);
-
-    // Setup the secondary scene for the broomstick
-    broomstickScene = new THREE.Scene();
-    broomstickCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1);
-    broomstickCamera.position.set(0, -0.3, -0.5);
+    camera.rotation.x = THREE.MathUtils.degToRad(-30);
 
     // Setup renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -41,13 +46,18 @@ function setupScene() {
 }
 
 function setupPlayer() {
-    const playerGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 32);
-    const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
-
-    player = new THREE.Mesh(playerGeometry, playerMaterial);
-    player.position.set(0, -0.5, -0.8);  
-    player.rotation.x = Math.PI / 2;
+    const loader = new FBXLoader();
+    loader.load('public/broomstick.fbx', (fbx) => {
+        player = fbx;
+        player.scale.set(0.003, 0.003, 0.003); // Scale the model down, adjust as necessary
+        player.position.set(0, -1, -2);
+        player.rotation.z = Math.PI;  // Rotate 180 degrees
+        player.rotation.x = Math.PI / 2;
+        controls.getObject().add(player);
+    });
 }
+    
+
 
 function setupGround() {
     const groundGeometry = new THREE.PlaneGeometry(50, 50);
@@ -68,11 +78,17 @@ function setupControls() {
     controls.getObject().position.y = 30;
     controls.getObject().position.x = 15;
     controls.getObject().position.z = 15;
-    // Add the broomstick to the controls object
-    controls.getObject().add(player);
     scene.add(controls.getObject());
     document.addEventListener("click", () => controls.lock());
+    document.addEventListener('mousemove', (event) => {
+        if(controls.isLocked) {
+            let deltaX = event.movementX;
+            tilt(deltaX);
+            lastMouseMoveTime = Date.now();
+    }
+});
 }
+
 function initEventListeners() {
     document.addEventListener("keydown", (event) => (keys[event.key] = true));
     document.addEventListener("keyup", (event) => (keys[event.key] = false));
@@ -81,13 +97,12 @@ function initEventListeners() {
 function animate() {
     requestAnimationFrame(animate);
     updateMovement();
+    resetTilt();
     renderer.clear(); // Clear the renderer
-    renderer.render(broomstickScene, broomstickCamera); // Render the broomstick scene first
     renderer.clearDepth(); // Clear the depth buffer so the primary scene is rendered on top
     renderer.render(scene, camera); // Render the primary scene
 }
 
-let score = 0;
 
 function incrementScore() {
     score++;
@@ -181,4 +196,44 @@ function createRandomSpotLight() {
     );
 
     scene.add(spotLight);
+}
+
+function tilt(deltaX) {
+     // Calculate tilt amount
+    let tiltAmount = deltaX * sensitivity;
+
+    // Limit tilt to maximum
+    if (tiltAmount > maxTilt) {
+        tiltAmount = maxTilt;
+    } else if (tiltAmount < -maxTilt) {
+        tiltAmount = -maxTilt;
+    }
+
+    // Apply tilt to broomstick model
+    player.rotation.z = THREE.MathUtils.lerp(
+        player.rotation.z,
+        Math.PI + tiltAmount,
+        0.05
+    );
+}
+
+function resetTilt() {
+    const timeSinceLastMouseMove = Date.now() - lastMouseMoveTime;
+    if (timeSinceLastMouseMove > 100) { // Adjust time to change when tilt resets
+        if (player) {
+            player.rotation.z = THREE.MathUtils.lerp(
+                player.rotation.z,
+                Math.PI,
+                tiltResetSpeed
+            );
+        }
+    } else {
+        if (player) {
+            player.rotation.z = THREE.MathUtils.lerp(
+                player.rotation.z,
+                Math.PI + tiltAmount,
+                0.05
+            );
+        }
+    }
 }
