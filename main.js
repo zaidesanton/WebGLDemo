@@ -205,24 +205,35 @@ function resetTilt() {
 }
 
 function createTorusesInSpiral() {
-    for (let i = 0; i < spiralLevels; i++) {
-        for (let j = 0; j < torusesPerLevel; j++) {
-            const angle = 2 * Math.PI * j / torusesPerLevel;
-            const y = i * spiralHeight / spiralLevels;
-            const x = spiralRadius * Math.cos(angle);
-            const z = spiralRadius * Math.sin(angle);
+    const totalToruses = torusesPerLevel * spiralLevels;
+    const totalHeight = 100;
+    for (let i = 0; i < totalToruses; i++) {
+        const angle = 2 * Math.PI * i / torusesPerLevel;
+        const x = spiralRadius * Math.cos(angle);
+        const z = spiralRadius * Math.sin(angle);
+        const y = (i / totalToruses) * totalHeight; // This will create a continuous upward spiral path
 
-            createTorus(new THREE.Vector3(x, y, z));
-        }
+        const position = new THREE.Vector3(x, y, z);
+
+        // Compute the position for the next torus, which is used for the lookAt position
+        const nextAngle = 2 * Math.PI * (i + 1) / torusesPerLevel;
+        const nextX = spiralRadius * Math.cos(nextAngle);
+        const nextZ = spiralRadius * Math.sin(nextAngle);
+        const nextY = ((i + 1) / totalToruses) * totalHeight; 
+
+        const lookAtPosition = new THREE.Vector3(nextX, nextY, nextZ);
+
+        createTorus(position, lookAtPosition);
     }
 }
 
-function createTorus(position) {
-    const geometry = new THREE.TorusGeometry(1, 0.3, 16, 100);
+function createTorus(position, lookAtPosition) {
+    const geometry = new THREE.TorusGeometry(5, 0.5, 16, 100);
     const material = createRandomMaterial();  // Assuming this function is still defined in your code
 
     const torus = new THREE.Mesh(geometry, material);
     torus.position.copy(position);
+    torus.lookAt(lookAtPosition);
 
     scene.add(torus);
 }
