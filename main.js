@@ -2,18 +2,16 @@ import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { getSkyBox } from "./sky";
+import { tilt, resetTilt } from "./tilt";
+import { setupGround, setupLight } from "./sceneDetailsSetup";
 
 let camera, scene, renderer, player, controls;
 let keys = {};
 let velocity = new THREE.Vector3();
 let moveSpeed = 0.3;
 let lastMouseMoveTime;
-let tiltAmount = 0;
-let score = 0;
 
-const tiltResetSpeed = 0.15; // Adjust to change speed of tilt reset
-const sensitivity = 0.03; // Adjust to change tilt sensitivity
-const maxTilt = 0.5; // Adjust to change maximum tilt
+let score = 0;
 
 const spiralLevels = 3;  // number of spiral levels
 const torusesPerLevel = 50;  // number of toruses per level
@@ -27,8 +25,8 @@ function init() {
     // Set up scene, camera, and renderer
     setupScene();
     setupPlayer(); // Call this before setupControls
-    setupGround();
-    setupLight();
+    setupGround(scene);
+    setupLight(scene);
     setupControls(); // Now setupPlayer has been called, and the broomstick exists
     initEventListeners();
 
@@ -63,35 +61,6 @@ function setupPlayer() {
         controls.getObject().add(player);
     });
 }
-    
-
-
-function setupGround() {
-    const loader = new THREE.TextureLoader();
-    loader.load('public/MJGrass2.png', function (texture) {
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set( 200, 200 ); // You might need to adjust these values
-        const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
-        const groundMaterial = new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide });
-
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = Math.PI / 2;
-        scene.add(ground);
-    });
-}
-
-function setupLight() {
-    // Hemispheric light to simulate daylight
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-    light.position.set(0, 200, 0);
-    scene.add(light);
-
-    // Add a directional light for shadows
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    directionalLight.position.set(0, 200, 100);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
-}
 
 function setupControls() {
     controls = new PointerLockControls(camera, document.body);
@@ -108,10 +77,10 @@ function setupControls() {
     document.addEventListener('mousemove', (event) => {
         if(controls.isLocked) {
             let deltaX = event.movementX;
-            tilt(deltaX);
+            tilt(deltaX, player);
             lastMouseMoveTime = Date.now();
-    }
-});
+        }
+    });
 }
 
 function initEventListeners() {
@@ -122,12 +91,11 @@ function initEventListeners() {
 function animate() {
     requestAnimationFrame(animate);
     updateMovement();
-    resetTilt();
+    resetTilt(player, lastMouseMoveTime);
     renderer.clear(); // Clear the renderer
     renderer.clearDepth(); // Clear the depth buffer so the primary scene is rendered on top
     renderer.render(scene, camera); // Render the primary scene
 }
-
 
 function incrementScore() {
     score++;
@@ -155,53 +123,12 @@ function updateMovement() {
     }
 }
 
-
 function createRandomMaterial() {
     return new THREE.MeshStandardMaterial({
         color: Math.floor(Math.random() * 16777215),
         metalness: Math.random(),
         roughness: Math.random(),
     });
-}
-
-function tilt(deltaX) {
-     // Calculate tilt amount
-    let tiltAmount = deltaX * sensitivity;
-
-    // Limit tilt to maximum
-    if (tiltAmount > maxTilt) {
-        tiltAmount = maxTilt;
-    } else if (tiltAmount < -maxTilt) {
-        tiltAmount = -maxTilt;
-    }
-
-    // Apply tilt to broomstick model
-    player.rotation.z = THREE.MathUtils.lerp(
-        player.rotation.z,
-        Math.PI + tiltAmount,
-        0.05
-    );
-}
-
-function resetTilt() {
-    const timeSinceLastMouseMove = Date.now() - lastMouseMoveTime;
-    if (timeSinceLastMouseMove > 100) { // Adjust time to change when tilt resets
-        if (player) {
-            player.rotation.z = THREE.MathUtils.lerp(
-                player.rotation.z,
-                Math.PI,
-                tiltResetSpeed
-            );
-        }
-    } else {
-        if (player) {
-            player.rotation.z = THREE.MathUtils.lerp(
-                player.rotation.z,
-                Math.PI + tiltAmount,
-                0.05
-            );
-        }
-    }
 }
 
 function createTorusesInSpiral() {
