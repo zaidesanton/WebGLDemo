@@ -12,6 +12,8 @@ let moveSpeed = 0.3;
 let lastMouseMoveTime;
 
 let score = 0;
+let previousTimestamp = 0; // Variable to store the previous frame timestamp
+let previousPlayerPosition = new THREE.Vector3();
 
 const spiralLevels = 3;  // number of spiral levels
 const torusesPerLevel = 50;  // number of toruses per level
@@ -41,8 +43,9 @@ function setupScene() {
     scene.background = new THREE.Color( 0xa0a0ff ); // Blue background
     scene.add(getSkyBox());
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.rotation.x = THREE.MathUtils.degToRad(-30);
+    camera.position.y -= 10;
 
     // Setup renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -88,13 +91,28 @@ function initEventListeners() {
     document.addEventListener("keyup", (event) => (keys[event.key] = false));
 }
 
+
 function animate() {
     requestAnimationFrame(animate);
-    updateMovement();
+    const currentTime = Date.now();
+
+    let delta = 1
+    if (previousTimestamp) {
+        delta = currentTime - previousTimestamp;
+    }
+
+    // Update the previous player position
+    previousPlayerPosition.copy(controls.getObject().position);
+
+    updateMovement(delta);
     resetTilt(player, lastMouseMoveTime);
     renderer.clear(); // Clear the renderer
     renderer.clearDepth(); // Clear the depth buffer so the primary scene is rendered on top
     renderer.render(scene, camera); // Render the primary scene
+
+    previousTimestamp = currentTime;
+
+     
 }
 
 function incrementScore() {
@@ -102,8 +120,11 @@ function incrementScore() {
     document.getElementById('score').textContent = 'Score: ' + score;
 }
 
-function updateMovement() {
+
+function updateMovement(delta) {
     if (controls.isLocked) {
+        const playerPosition = controls.getObject().position;
+
         velocity = new THREE.Vector3();
         const moveForward = keys["w"] || keys["ArrowUp"];
         const moveBackward = keys["s"] || keys["ArrowDown"];
@@ -117,14 +138,14 @@ function updateMovement() {
         if (moveRight) velocity.x += moveSpeed;
         if (moveUp) velocity.y += moveSpeed;
         if (moveDown) velocity.y -= moveSpeed;
+
         controls.getObject().translateX(velocity.x);
         controls.getObject().translateY(velocity.y);
         controls.getObject().translateZ(velocity.z);
 
         // Get the player's current position and velocity
-        const playerPosition = controls.getObject().position;
         const playerVelocity = velocity.clone();
-
+        
         // Iterate through all the toruses in the scene
         scene.children.forEach((object) => {
             if (object instanceof THREE.Mesh && object.geometry instanceof THREE.TorusGeometry) {
@@ -132,7 +153,7 @@ function updateMovement() {
                 const distance = playerPosition.distanceTo(object.position);
 
                 // Define a threshold distance for passing through the torus
-                const passThroughThreshold = 5;
+                const passThroughThreshold = 3;
 
                 // Get the vector from the torus center to the player's position
                 const centerToPlayer = playerPosition.clone().sub(object.position);
@@ -147,10 +168,13 @@ function updateMovement() {
 
                     // Remove the torus from the scene
                     scene.remove(object);
+
+                    // Create a particle system at the torus position
+                    const torusRotation = object.quaternion; // Assuming the torus has a quaternion rotation
+                    createParticleEffect(object.position, object.geometry, object.material, torusRotation);
                 }
             }
         });
-
     }
 }
 
@@ -186,7 +210,7 @@ function createTorusesInSpiral() {
 }
 
 function createTorus(position, lookAtPosition) {
-    const geometry = new THREE.TorusGeometry(5, 0.5, 16, 100);
+    const geometry = new THREE.TorusGeometry(3, 0.3, 16, 100);
     const material = createRandomMaterial();  // Assuming this function is still defined in your code
 
     const torus = new THREE.Mesh(geometry, material);
@@ -196,3 +220,71 @@ function createTorus(position, lookAtPosition) {
     scene.add(torus);
 }
 
+
+function createParticleEffect(position, geometry, material, rotation) {
+    const particleCount = geometry.getAttribute('position').count;
+    const particleSize = 0.2; // Size of each particle
+
+    const particleGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+
+    // Set particle positions to match torus vertices, considering torus rotation
+    const torusVertices = geometry.getAttribute('position').array;
+    const torusMatrix = new THREE.Matrix4().makeRotationFromQuaternion(rotation);
+    for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        const vertex = new THREE.Vector3(torusVertices[i3], torusVertices[i3 + 1], torusVertices[i3 + 2]);
+        vertex.applyMatrix4(torusMatrix);
+        positions[i3] = vertex.x + position.x;
+        positions[i3 + 1] = vertex.y + position.y;
+        positions[i3 + 2] = vertex.z + position.z;
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const particleMaterial = new THREE.PointsMaterial({ 
+        size: particleSize,
+        color: material.color,
+        map: material.map,
+        alphaTest: 0.5,
+        transparent: true
+    });
+
+    const particles = new THREE.Points(particleGeometry, particleMaterial);
+    scene.add(particles);
+
+    // Animate and remove the particle system after a certain duration
+    const duration = 2; // Duration in seconds
+    const startTime = Date.now();
+
+    function animateParticles() {
+        const elapsedTime = (Date.now() - startTime) / 1000; // Convert to seconds
+
+        let speedDivider = 2;
+
+        // Update particle positions based on time elapsed
+        const particlePositions = particles.geometry.attributes.position.array;
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            const vertex = new THREE.Vector3(
+                particlePositions[i3] - position.x,
+                particlePositions[i3 + 1] - position.y,
+                particlePositions[i3 + 2] - position.z
+            );
+            vertex.addScaledVector(vertex, elapsedTime / duration * ( 1/speedDivider));
+            particlePositions[i3] = vertex.x + position.x;
+            particlePositions[i3 + 1] = vertex.y + position.y;
+            particlePositions[i3 + 2] = vertex.z + position.z;
+        }
+
+        particles.geometry.attributes.position.needsUpdate = true;
+
+        if (elapsedTime < duration) {
+            requestAnimationFrame(animateParticles);
+        } else {
+            scene.remove(particles);
+        }
+    }
+
+    animateParticles();
+}
