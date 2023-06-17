@@ -10,8 +10,9 @@ import { createTorusesInSpiral } from "./rings";
 let camera, scene, renderer, player, controls;
 let keys = {};
 let velocity = new THREE.Vector3();
-let playerSpeed = 0.3;
-let boostedSpeed = 0.6;
+let playerSpeed = 0.25;
+let boostedSpeed = 0.5;
+let slowedSpeed = 0.15;
 
 let lastMouseMoveTime;
 
@@ -129,8 +130,9 @@ function updateMovement() {
 
         velocity = new THREE.Vector3();
         const moveForward = keys["w"] || keys["ArrowUp"];
+        const slowDown = keys["s"] || keys["ArrowDown"];
 
-        const currentSpeed = moveForward ? boostedSpeed : playerSpeed;
+        const currentSpeed = moveForward ? boostedSpeed : (slowDown ? slowedSpeed : playerSpeed);
 
         velocity.z -= currentSpeed;
 
