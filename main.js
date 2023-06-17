@@ -120,6 +120,37 @@ function updateMovement() {
         controls.getObject().translateX(velocity.x);
         controls.getObject().translateY(velocity.y);
         controls.getObject().translateZ(velocity.z);
+
+        // Get the player's current position and velocity
+        const playerPosition = controls.getObject().position;
+        const playerVelocity = velocity.clone();
+
+        // Iterate through all the toruses in the scene
+        scene.children.forEach((object) => {
+            if (object instanceof THREE.Mesh && object.geometry instanceof THREE.TorusGeometry) {
+                // Calculate the distance between the player and the torus
+                const distance = playerPosition.distanceTo(object.position);
+
+                // Define a threshold distance for passing through the torus
+                const passThroughThreshold = 5;
+
+                // Get the vector from the torus center to the player's position
+                const centerToPlayer = playerPosition.clone().sub(object.position);
+
+                // Calculate the dot product between the player's velocity and the center-to-player vector
+                const dotProduct = playerVelocity.dot(centerToPlayer);
+
+                // If the player is close enough to the torus and the dot product is negative, consider it passed through
+                if (distance < passThroughThreshold && dotProduct < 0) {
+                    // Increase the score
+                    incrementScore();
+
+                    // Remove the torus from the scene
+                    scene.remove(object);
+                }
+            }
+        });
+
     }
 }
 
