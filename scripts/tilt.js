@@ -7,21 +7,16 @@ let tiltAmount = 0;
 
 export function tilt(deltaX, player) {
     // Calculate tilt amount
-   let tiltAmount = deltaX * sensitivity;
+    let XtiltAmount = deltaX * sensitivity;
 
-   // Limit tilt to maximum
-   if (tiltAmount > maxTilt) {
-       tiltAmount = maxTilt;
-   } else if (tiltAmount < -maxTilt) {
-       tiltAmount = -maxTilt;
-   }
+    const clampedXtilt = THREE.MathUtils.clamp(XtiltAmount, -maxTilt, maxTilt);
 
-   // Apply tilt to broomstick model
-   player.rotation.z = THREE.MathUtils.lerp(
-       player.rotation.z,
-       Math.PI + tiltAmount,
-       0.05
-   );
+    // Apply tilt to broomstick model
+    player.rotation.z = THREE.MathUtils.lerp(
+        player.rotation.z,
+        Math.PI + clampedXtilt,
+        0.05
+    );
 }
 
 export function resetTilt(player, lastMouseMoveTime) {

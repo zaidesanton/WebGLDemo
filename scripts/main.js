@@ -6,6 +6,7 @@ import { tilt, resetTilt } from "./tilt";
 import { setupGround, setupLight } from "./sceneDetailsSetup";
 import { createParticleEffect } from "./particleSystem";
 import { createTorusesInSpiral } from "./rings";
+import { initMusic, stopBackgroundMusic, playCollectAudio, playSwooshAudio } from "./music";
 
 let camera, scene, renderer, player, controls;
 let keys = {};
@@ -34,6 +35,7 @@ function init() {
     createTorusesInSpiral(scene);
 
     startCountdown();
+    initMusic();
 }
 
 function setupScene() {
@@ -94,6 +96,9 @@ function setupControls() {
     document.addEventListener('mousemove', (event) => {
         if(controls.isLocked) {
             let deltaX = event.movementX;
+            if (deltaX > 10) {
+                playSwooshAudio();
+            }
             tilt(deltaX, player);
             lastMouseMoveTime = Date.now();
         }
@@ -171,6 +176,7 @@ function handleTorusCollisionDetection(playerPosition, playerVelocity, object) {
             // Create a particle system at the torus position
             const torusRotation = object.quaternion; // Assuming the torus has a quaternion rotation
             createParticleEffect(scene, object.position, object.geometry, object.material, torusRotation);
+            playCollectAudio();
         }
     }
 }
@@ -196,6 +202,7 @@ function startCountdown() {
                 
                 // Call the startTimer function to start the timer
                 startTimer();
+                stopBackgroundMusic();
             }
         }, 1000);
 
