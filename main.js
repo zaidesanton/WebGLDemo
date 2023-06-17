@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { getSkyBox } from "./sky";
 
 let camera, scene, renderer, player, controls;
 let keys = {};
@@ -14,7 +15,6 @@ const tiltResetSpeed = 0.15; // Adjust to change speed of tilt reset
 const sensitivity = 0.03; // Adjust to change tilt sensitivity
 const maxTilt = 0.5; // Adjust to change maximum tilt
 
-   
 
 init();
 animate();
@@ -36,6 +36,10 @@ function init() {
 function setupScene() {
     // Setup the primary scene
     scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2( 0xa0a0ff, 0.00025 ); // Blue-ish fog
+    scene.background = new THREE.Color( 0xa0a0ff ); // Blue background
+    scene.add(getSkyBox());
+
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.rotation.x = THREE.MathUtils.degToRad(-30);
 
@@ -60,12 +64,17 @@ function setupPlayer() {
 
 
 function setupGround() {
-    const groundGeometry = new THREE.PlaneGeometry(50, 50);
-    const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, side: THREE.DoubleSide });
+    const loader = new THREE.TextureLoader();
+    loader.load('public/MJGrass2.png', function (texture) {
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set( 200, 200 ); // You might need to adjust these values
+        const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+        const groundMaterial = new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide });
 
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = Math.PI / 2;
-    scene.add(ground);
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = Math.PI / 2;
+        scene.add(ground);
+    });
 }
 
 function setupLight() {
@@ -79,7 +88,12 @@ function setupControls() {
     controls.getObject().position.x = 15;
     controls.getObject().position.z = 15;
     scene.add(controls.getObject());
-    document.addEventListener("click", () => controls.lock());
+    document.addEventListener("click", () => {
+        if (!document.pointerLockElement) {
+            controls.lock();
+        }
+    });
+
     document.addEventListener('mousemove', (event) => {
         if(controls.isLocked) {
             let deltaX = event.movementX;
@@ -237,3 +251,4 @@ function resetTilt() {
         }
     }
 }
+
