@@ -15,6 +15,10 @@ const tiltResetSpeed = 0.15; // Adjust to change speed of tilt reset
 const sensitivity = 0.03; // Adjust to change tilt sensitivity
 const maxTilt = 0.5; // Adjust to change maximum tilt
 
+const spiralLevels = 3;  // number of spiral levels
+const torusesPerLevel = 50;  // number of toruses per level
+const spiralRadius = 50;  // radius of the spiral
+const spiralHeight = 30;  // height of the spiral
 
 init();
 animate();
@@ -29,8 +33,7 @@ function init() {
     initEventListeners();
 
     // Create random objects and spotlights
-    createRandomObjects(50);
-    createRandomSpotLights(15);
+    createTorusesInSpiral();
 }
 
 function setupScene() {
@@ -78,8 +81,16 @@ function setupGround() {
 }
 
 function setupLight() {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+    // Hemispheric light to simulate daylight
+    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+    light.position.set(0, 200, 0);
+    scene.add(light);
+
+    // Add a directional light for shadows
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(0, 200, 100);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
 }
 
 function setupControls() {
@@ -144,40 +155,6 @@ function updateMovement() {
     }
 }
 
-function createRandomObjects(numOfObjects) {
-    for (let i = 0; i < numOfObjects; i++) {
-        createRandomObject();
-    }
-}
-
-function createRandomObject() {
-    const geoTypes = ["sphere", "box", "torus", "cylinder"];
-    const type = geoTypes[Math.floor(Math.random() * geoTypes.length)];
-    const geometry = generateRandomGeometry(type);
-    const material = createRandomMaterial();
-
-    const object = new THREE.Mesh(geometry, material);
-    object.position.set(
-        Math.random() * 50 - 25,
-        Math.random() * 10 + 1,
-        Math.random() * 50 - 25
-    );
-
-    scene.add(object);
-}
-
-function generateRandomGeometry(type) {
-    switch (type) {
-        case "sphere":
-            return new THREE.SphereGeometry(Math.random() * 3, Math.random() * 64 + 32, Math.random() * 64 + 32);
-        case "torus":
-            return new THREE.TorusGeometry(Math.random() * 5, Math.random() + 0.2, 16, 100);
-        case "cylinder":
-            return new THREE.CylinderGeometry(Math.random() * 3, Math.random() * 3, Math.random() * 7 + 1, 16);
-        default:
-            return new THREE.BoxGeometry(Math.random() * 2 + 1, Math.random() * 2 + 1, Math.random() * 2 + 1);
-    }
-}
 
 function createRandomMaterial() {
     return new THREE.MeshStandardMaterial({
@@ -185,31 +162,6 @@ function createRandomMaterial() {
         metalness: Math.random(),
         roughness: Math.random(),
     });
-}
-
-function createRandomSpotLights(numOfLights) {
-    for (let i = 0; i < numOfLights; i++) {
-        createRandomSpotLight();
-    }
-}
-
-function createRandomSpotLight() {
-    const spotLight = new THREE.SpotLight(
-        Math.floor(Math.random() * 16777215),
-        Math.random() * 4,
-        Math.random() * 100 + 50,
-        Math.PI / 6,
-        0.5,
-        2
-    );
-
-    spotLight.position.set(
-        Math.random() * 100 - 50,
-        Math.random() * 30 + 10,
-        Math.random() * 100 - 50
-    );
-
-    scene.add(spotLight);
 }
 
 function tilt(deltaX) {
@@ -250,5 +202,28 @@ function resetTilt() {
             );
         }
     }
+}
+
+function createTorusesInSpiral() {
+    for (let i = 0; i < spiralLevels; i++) {
+        for (let j = 0; j < torusesPerLevel; j++) {
+            const angle = 2 * Math.PI * j / torusesPerLevel;
+            const y = i * spiralHeight / spiralLevels;
+            const x = spiralRadius * Math.cos(angle);
+            const z = spiralRadius * Math.sin(angle);
+
+            createTorus(new THREE.Vector3(x, y, z));
+        }
+    }
+}
+
+function createTorus(position) {
+    const geometry = new THREE.TorusGeometry(1, 0.3, 16, 100);
+    const material = createRandomMaterial();  // Assuming this function is still defined in your code
+
+    const torus = new THREE.Mesh(geometry, material);
+    torus.position.copy(position);
+
+    scene.add(torus);
 }
 
