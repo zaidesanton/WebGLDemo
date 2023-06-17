@@ -44,11 +44,7 @@ function setupScene() {
     scene.add(getSkyBox());
 
     camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
-    //camera.rotation.x = THREE.MathUtils.degToRad(-30);
-    //camera.rotation.z = THREE.MathUtils.degToRad(90);
     camera.rotation.y = THREE.MathUtils.degToRad(180);
-
-
 
     // Setup renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -109,10 +105,8 @@ function initEventListeners() {
     document.addEventListener("keyup", (event) => (keys[event.key] = false));
 }
 
-
 function animate() {
     requestAnimationFrame(animate);
-
     updateMovement();
     resetTilt(player, lastMouseMoveTime);
     renderer.clear(); // Clear the renderer
@@ -122,7 +116,7 @@ function animate() {
 
 function incrementScore() {
     score++;
-    document.getElementById('score').textContent = 'Score: ' + score;
+    document.getElementById('score').textContent = 'Rings: ' + score + "/105";
 }
 
 function updateMovement() {
@@ -199,6 +193,9 @@ function startCountdown() {
                 countdownElement.style.display = 'none'; // Hide the countdown
                 clearInterval(intervalId); // Stop the countdown
                 controls.lock();
+                
+                // Call the startTimer function to start the timer
+                startTimer();
             }
         }, 1000);
 
@@ -206,3 +203,36 @@ function startCountdown() {
         document.removeEventListener("click", countdown);
     });
 }
+
+function startTimer() {
+    let seconds = 90; // Set the initial time in seconds
+    let intervalId = null; // Store the interval ID
+
+    function updateTimer() {
+        seconds--;
+        if (seconds <= 0) {
+            // Timer reached zero
+            clearInterval(intervalId);
+            let text = "Not bad."
+            if (score >= 50 && score < 80) {
+                text = "Great!"
+            } else if (score < 105) {
+                text = "Terrific!"
+            } else {
+                text = "World Record!"
+            }
+            
+            document.getElementById('time').textContent = "Final Score: " + score + ". " + text;
+
+            // Perform your desired action here
+            // For example, show a message, trigger an event, etc.
+        } else {
+            document.getElementById('time').textContent = 'Time: ' + seconds + "s";
+        }
+    }
+
+    // Start the timer
+    updateTimer();
+    intervalId = setInterval(updateTimer, 1000);
+}
+

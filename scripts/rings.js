@@ -6,7 +6,7 @@ const spiralRadius = 100;  // radius of the spiral
 const totalToruses = torusesPerLevel * spiralLevels;
 const totalHeight = 300;
 
-const colors = [new THREE.Color("#0000FF"), new THREE.Color("#00FF00"), new THREE.Color("#FFFF00"), , new THREE.Color("#FF0000")]
+const colors = [new THREE.Color("#0000FF"), new THREE.Color("#00FF00"), new THREE.Color("#FFFF00"), new THREE.Color("#FF0000")]
 const difficultyLevels = 4;
 const torusesPerColor = totalToruses / (difficultyLevels - 1);
 const torusesPerDifficulty = totalToruses / difficultyLevels;

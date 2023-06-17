@@ -14,10 +14,21 @@
     position: fixed; 
     top: 20px; 
     left: 20px; 
-    font-size: 2em;
+    font-size: 3em;
     color: white;
     z-index: 10;
 }
+
+#time {
+    position: fixed; 
+    top: 20px; 
+    left: 44%; 
+    font-size: 3em;
+    color: white;
+    z-index: 10;
+    text-align: center;
+}
+
 
 body, html {
     width: 100%;
