@@ -10,7 +10,9 @@ import { createTorusesInSpiral } from "./rings";
 let camera, scene, renderer, player, controls;
 let keys = {};
 let velocity = new THREE.Vector3();
-let moveSpeed = 0.3;
+let playerSpeed = 0.3;
+let boostedSpeed = 0.6;
+
 let lastMouseMoveTime;
 
 let score = 0;
@@ -29,6 +31,8 @@ function init() {
 
     // Create random objects and spotlights
     createTorusesInSpiral(scene);
+
+    startCountdown();
 }
 
 function setupScene() {
@@ -39,8 +43,11 @@ function setupScene() {
     scene.add(getSkyBox());
 
     camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.rotation.x = THREE.MathUtils.degToRad(-30);
-    camera.position.y -= 10;
+    //camera.rotation.x = THREE.MathUtils.degToRad(-30);
+    //camera.rotation.z = THREE.MathUtils.degToRad(90);
+    camera.rotation.y = THREE.MathUtils.degToRad(180);
+
+
 
     // Setup renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -50,26 +57,41 @@ function setupScene() {
 
 function setupPlayer() {
     const loader = new FBXLoader();
-    loader.load('public/broomstick.fbx', (fbx) => {
+    loader.load('broomstick.fbx', (fbx) => {
         player = fbx;
         player.scale.set(0.003, 0.003, 0.003); // Scale the model down, adjust as necessary
-        player.position.set(0, -1, -2);
+        player.position.set(0, -0.7, -2);
         player.rotation.z = Math.PI;  // Rotate 180 degrees
         player.rotation.x = Math.PI / 2;
         controls.getObject().add(player);
+    });
+
+    const amountOfCastlesEachSide = 10;
+    loader.load('castle.fbx', (fbx) => {
+        fbx.scale.set(0.03, 0.03, 0.03); // Scale the model down, adjust as necessary
+        
+        for (let i = 0; i < amountOfCastlesEachSide; i++) {
+            const newFbx = fbx.clone();
+            newFbx.position.set(Math.random() * 500 - 250, -5, Math.random() * 500 - 250);
+            newFbx.rotation.y = Math.PI / Math.abs(i);  
+            scene.add(newFbx)
+        }
     });
 }
 
 function setupControls() {
     controls = new PointerLockControls(camera, document.body);
-    controls.getObject().position.y = 30;
-    controls.getObject().position.x = 15;
-    controls.getObject().position.z = 15;
+    controls.getObject().position.y = 1;
+    controls.getObject().position.x = 100;
+    controls.getObject().position.z = -50;
     scene.add(controls.getObject());
-    document.addEventListener("click", () => {
+    document.addEventListener("click", function startGame() {
         if (!document.pointerLockElement) {
-            controls.lock();
+            startCountdown();
         }
+    
+        // Remove the event listener so it doesn't interfere with game controls
+        document.removeEventListener("click", startGame);
     });
 
     document.addEventListener('mousemove', (event) => {
@@ -107,17 +129,10 @@ function updateMovement() {
 
         velocity = new THREE.Vector3();
         const moveForward = keys["w"] || keys["ArrowUp"];
-        const moveBackward = keys["s"] || keys["ArrowDown"];
-        const moveLeft = keys["a"] || keys["ArrowLeft"];
-        const moveRight = keys["d"] || keys["ArrowRight"];
-        const moveUp = keys["r"];
-        const moveDown = keys["f"];
-        if (moveForward) velocity.z -= moveSpeed;
-        if (moveBackward) velocity.z += moveSpeed;
-        if (moveLeft) velocity.x -= moveSpeed;
-        if (moveRight) velocity.x += moveSpeed;
-        if (moveUp) velocity.y += moveSpeed;
-        if (moveDown) velocity.y -= moveSpeed;
+
+        const currentSpeed = moveForward ? boostedSpeed : playerSpeed;
+
+        velocity.z -= currentSpeed;
 
         controls.getObject().translateX(velocity.x);
         controls.getObject().translateY(velocity.y);
@@ -141,7 +156,7 @@ function handleTorusCollisionDetection(playerPosition, playerVelocity, object) {
         const distance = playerPosition.distanceTo(object.position);
 
         // Define a threshold distance for passing through the torus
-        const passThroughThreshold = 3;
+        const passThroughThreshold = object.geometry.boundingSphere.radius;
 
         // Get the vector from the torus center to the player's position
         const centerToPlayer = playerPosition.clone().sub(object.position);
@@ -162,4 +177,30 @@ function handleTorusCollisionDetection(playerPosition, playerVelocity, object) {
             createParticleEffect(scene, object.position, object.geometry, object.material, torusRotation);
         }
     }
+}
+
+// And modify startCountdown() to show a "Click to start" message:
+function startCountdown() {
+    let countdownElement = document.getElementById('countdown');
+    countdownElement.style.display = 'block'; // Show the countdown
+    countdownElement.innerText = "Click to Start";
+
+    document.addEventListener("click", function countdown() {
+        let count = 3;
+        countdownElement.innerText = count;
+
+        let intervalId = setInterval(function() {
+            count--;
+            if (count > 0) {
+                countdownElement.innerText = count;
+            } else {
+                countdownElement.style.display = 'none'; // Hide the countdown
+                clearInterval(intervalId); // Stop the countdown
+                controls.lock();
+            }
+        }, 1000);
+
+        // Remove the event listener so it doesn't interfere with game controls
+        document.removeEventListener("click", countdown);
+    });
 }

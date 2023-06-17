@@ -11,15 +11,17 @@
         display: block;
       }
     </style>
+    <link rel="stylesheet" type="text/css" href="styles.css">
     <title>Simple Three.js FPV Game</title>
   </head>
   <body>
-    <script type="module" src="/main.js"></script>
+    <script type="module" src="scripts/main.js"></script>
     <div id="game-container" style="position: relative;">
       <!-- Your canvas will be appended here by Three.js -->
       <div id="hud" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
           <!-- Any HTML can go here! -->
-          <div id="score" style="position: absolute; top: 10px; left: 10px; font-size: 2em; color: white;">Score: 0</div>
+          <div id="score">Score: 0</div>
+          <div id="countdown"></div>
       </div>
   </div>
   </body>
