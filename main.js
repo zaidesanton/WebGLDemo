@@ -4,6 +4,8 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { getSkyBox } from "./sky";
 import { tilt, resetTilt } from "./tilt";
 import { setupGround, setupLight } from "./sceneDetailsSetup";
+import { createParticleEffect } from "./particleSystem";
+import { createTorusesInSpiral } from "./rings";
 
 let camera, scene, renderer, player, controls;
 let keys = {};
@@ -12,13 +14,6 @@ let moveSpeed = 0.3;
 let lastMouseMoveTime;
 
 let score = 0;
-let previousTimestamp = 0; // Variable to store the previous frame timestamp
-let previousPlayerPosition = new THREE.Vector3();
-
-const spiralLevels = 3;  // number of spiral levels
-const torusesPerLevel = 50;  // number of toruses per level
-const spiralRadius = 50;  // radius of the spiral
-const spiralHeight = 30;  // height of the spiral
 
 init();
 animate();
@@ -33,7 +28,7 @@ function init() {
     initEventListeners();
 
     // Create random objects and spotlights
-    createTorusesInSpiral();
+    createTorusesInSpiral(scene);
 }
 
 function setupScene() {
@@ -94,25 +89,12 @@ function initEventListeners() {
 
 function animate() {
     requestAnimationFrame(animate);
-    const currentTime = Date.now();
 
-    let delta = 1
-    if (previousTimestamp) {
-        delta = currentTime - previousTimestamp;
-    }
-
-    // Update the previous player position
-    previousPlayerPosition.copy(controls.getObject().position);
-
-    updateMovement(delta);
+    updateMovement();
     resetTilt(player, lastMouseMoveTime);
     renderer.clear(); // Clear the renderer
     renderer.clearDepth(); // Clear the depth buffer so the primary scene is rendered on top
     renderer.render(scene, camera); // Render the primary scene
-
-    previousTimestamp = currentTime;
-
-     
 }
 
 function incrementScore() {
@@ -120,10 +102,8 @@ function incrementScore() {
     document.getElementById('score').textContent = 'Score: ' + score;
 }
 
-
-function updateMovement(delta) {
+function updateMovement() {
     if (controls.isLocked) {
-        const playerPosition = controls.getObject().position;
 
         velocity = new THREE.Vector3();
         const moveForward = keys["w"] || keys["ArrowUp"];
@@ -145,146 +125,41 @@ function updateMovement(delta) {
 
         // Get the player's current position and velocity
         const playerVelocity = velocity.clone();
-        
+        const playerPosition = controls.getObject().position;
+
         // Iterate through all the toruses in the scene
         scene.children.forEach((object) => {
-            if (object instanceof THREE.Mesh && object.geometry instanceof THREE.TorusGeometry) {
-                // Calculate the distance between the player and the torus
-                const distance = playerPosition.distanceTo(object.position);
-
-                // Define a threshold distance for passing through the torus
-                const passThroughThreshold = 3;
-
-                // Get the vector from the torus center to the player's position
-                const centerToPlayer = playerPosition.clone().sub(object.position);
-
-                // Calculate the dot product between the player's velocity and the center-to-player vector
-                const dotProduct = playerVelocity.dot(centerToPlayer);
-
-                // If the player is close enough to the torus and the dot product is negative, consider it passed through
-                if (distance < passThroughThreshold && dotProduct < 0) {
-                    // Increase the score
-                    incrementScore();
-
-                    // Remove the torus from the scene
-                    scene.remove(object);
-
-                    // Create a particle system at the torus position
-                    const torusRotation = object.quaternion; // Assuming the torus has a quaternion rotation
-                    createParticleEffect(object.position, object.geometry, object.material, torusRotation);
-                }
-            }
+            handleTorusCollisionDetection(playerPosition, playerVelocity, object)
         });
     }
 }
 
-function createRandomMaterial() {
-    return new THREE.MeshStandardMaterial({
-        color: Math.floor(Math.random() * 16777215),
-        metalness: Math.random(),
-        roughness: Math.random(),
-    });
-}
+function handleTorusCollisionDetection(playerPosition, playerVelocity, object) {
+    if (object instanceof THREE.Mesh && object.geometry instanceof THREE.TorusGeometry) {
+        
+        // Calculate the distance between the player and the torus
+        const distance = playerPosition.distanceTo(object.position);
 
-function createTorusesInSpiral() {
-    const totalToruses = torusesPerLevel * spiralLevels;
-    const totalHeight = 100;
-    for (let i = 0; i < totalToruses; i++) {
-        const angle = 2 * Math.PI * i / torusesPerLevel;
-        const x = spiralRadius * Math.cos(angle);
-        const z = spiralRadius * Math.sin(angle);
-        const y = (i / totalToruses) * totalHeight; // This will create a continuous upward spiral path
+        // Define a threshold distance for passing through the torus
+        const passThroughThreshold = 3;
 
-        const position = new THREE.Vector3(x, y, z);
+        // Get the vector from the torus center to the player's position
+        const centerToPlayer = playerPosition.clone().sub(object.position);
 
-        // Compute the position for the next torus, which is used for the lookAt position
-        const nextAngle = 2 * Math.PI * (i + 1) / torusesPerLevel;
-        const nextX = spiralRadius * Math.cos(nextAngle);
-        const nextZ = spiralRadius * Math.sin(nextAngle);
-        const nextY = ((i + 1) / totalToruses) * totalHeight; 
+        // Calculate the dot product between the player's velocity and the center-to-player vector
+        const dotProduct = playerVelocity.dot(centerToPlayer);
 
-        const lookAtPosition = new THREE.Vector3(nextX, nextY, nextZ);
+        // If the player is close enough to the torus and the dot product is negative, consider it passed through
+        if (distance < passThroughThreshold && dotProduct < 0) {
+            // Increase the score
+            incrementScore();
 
-        createTorus(position, lookAtPosition);
-    }
-}
+            // Remove the torus from the scene
+            scene.remove(object);
 
-function createTorus(position, lookAtPosition) {
-    const geometry = new THREE.TorusGeometry(3, 0.3, 16, 100);
-    const material = createRandomMaterial();  // Assuming this function is still defined in your code
-
-    const torus = new THREE.Mesh(geometry, material);
-    torus.position.copy(position);
-    torus.lookAt(lookAtPosition);
-
-    scene.add(torus);
-}
-
-
-function createParticleEffect(position, geometry, material, rotation) {
-    const particleCount = geometry.getAttribute('position').count;
-    const particleSize = 0.2; // Size of each particle
-
-    const particleGeometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-
-    // Set particle positions to match torus vertices, considering torus rotation
-    const torusVertices = geometry.getAttribute('position').array;
-    const torusMatrix = new THREE.Matrix4().makeRotationFromQuaternion(rotation);
-    for (let i = 0; i < particleCount; i++) {
-        const i3 = i * 3;
-        const vertex = new THREE.Vector3(torusVertices[i3], torusVertices[i3 + 1], torusVertices[i3 + 2]);
-        vertex.applyMatrix4(torusMatrix);
-        positions[i3] = vertex.x + position.x;
-        positions[i3 + 1] = vertex.y + position.y;
-        positions[i3 + 2] = vertex.z + position.z;
-    }
-
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    const particleMaterial = new THREE.PointsMaterial({ 
-        size: particleSize,
-        color: material.color,
-        map: material.map,
-        alphaTest: 0.5,
-        transparent: true
-    });
-
-    const particles = new THREE.Points(particleGeometry, particleMaterial);
-    scene.add(particles);
-
-    // Animate and remove the particle system after a certain duration
-    const duration = 2; // Duration in seconds
-    const startTime = Date.now();
-
-    function animateParticles() {
-        const elapsedTime = (Date.now() - startTime) / 1000; // Convert to seconds
-
-        let speedDivider = 2;
-
-        // Update particle positions based on time elapsed
-        const particlePositions = particles.geometry.attributes.position.array;
-        for (let i = 0; i < particleCount; i++) {
-            const i3 = i * 3;
-            const vertex = new THREE.Vector3(
-                particlePositions[i3] - position.x,
-                particlePositions[i3 + 1] - position.y,
-                particlePositions[i3 + 2] - position.z
-            );
-            vertex.addScaledVector(vertex, elapsedTime / duration * ( 1/speedDivider));
-            particlePositions[i3] = vertex.x + position.x;
-            particlePositions[i3 + 1] = vertex.y + position.y;
-            particlePositions[i3 + 2] = vertex.z + position.z;
-        }
-
-        particles.geometry.attributes.position.needsUpdate = true;
-
-        if (elapsedTime < duration) {
-            requestAnimationFrame(animateParticles);
-        } else {
-            scene.remove(particles);
+            // Create a particle system at the torus position
+            const torusRotation = object.quaternion; // Assuming the torus has a quaternion rotation
+            createParticleEffect(scene, object.position, object.geometry, object.material, torusRotation);
         }
     }
-
-    animateParticles();
 }
