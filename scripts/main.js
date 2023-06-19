@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
-import { getSkyBox } from "./sky";
-import { tilt, resetTilt } from "./tilt";
-import { setupGround, setupLight } from "./sceneDetailsSetup";
-import { createParticleEffect } from "./particleSystem";
-import { createTorusesInSpiral } from "./rings";
-import { initMusic, stopBackgroundMusic, playCollectAudio, playSwooshAudio } from "./music";
+import { getSkyBox } from "./sky.js";
+import { tilt, resetTilt } from "./tilt.js";
+import { setupGround, setupLight } from "./sceneDetailsSetup.js";
+import { createParticleEffect } from "./particleSystem.js";
+import { createTorusesInSpiral } from "./rings.js";
+import { initMusic, stopBackgroundMusic, playCollectAudio, playSwooshAudio } from "./music.js";
 
 let camera, scene, renderer, player, controls;
 let keys = {};
