@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 export function setupGround(scene) {
     const loader = new THREE.TextureLoader();
-    loader.load('MJGrass2.png', function (texture) {
+    loader.load('./public/MJGrass2.png', function (texture) {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set( 200, 200 ); // You might need to adjust these values
         const groundGeometry = new THREE.PlaneGeometry(1000, 1000);

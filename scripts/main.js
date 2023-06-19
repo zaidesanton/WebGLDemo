@@ -56,7 +56,7 @@ function setupScene() {
 
 function setupPlayer() {
     const loader = new FBXLoader();
-    loader.load('broomstick.fbx', (fbx) => {
+    loader.load('./public/broomstick.fbx', (fbx) => {
         player = fbx;
         player.scale.set(0.003, 0.003, 0.003); // Scale the model down, adjust as necessary
         player.position.set(0, -0.7, -2);
@@ -66,7 +66,7 @@ function setupPlayer() {
     });
 
     const amountOfCastlesEachSide = 10;
-    loader.load('castle.fbx', (fbx) => {
+    loader.load('./public/castle.fbx', (fbx) => {
         fbx.scale.set(0.03, 0.03, 0.03); // Scale the model down, adjust as necessary
         
         for (let i = 0; i < amountOfCastlesEachSide; i++) {

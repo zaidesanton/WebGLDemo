@@ -13,18 +13,18 @@ const swooshAudio = new THREE.Audio(listener);
 
 export function initMusic() {
     // Load an audio file
-    audioLoader.load('backgroundMusic.mp3', function(buffer) {
+    audioLoader.load('./public/backgroundMusic.mp3', function(buffer) {
         // Set the audio buffer to the audio source
         backgroundAudio.setBuffer(buffer);
 
         playBackgroundMusic();
     });
 
-    audioLoader.load('collect.wav', function(buffer) {
+    audioLoader.load('./public/collect.wav', function(buffer) {
         collectAudio.setBuffer(buffer);
     });
 
-    audioLoader.load('swoosh.wav', function(buffer) {
+    audioLoader.load('./public/swoosh.wav', function(buffer) {
         swooshAudio.setBuffer(buffer);
     });
 }
